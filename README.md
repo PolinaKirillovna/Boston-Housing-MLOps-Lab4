@@ -263,4 +263,9 @@ pytest -v
 
 ### Инициализация DVC
 ```bash
-dvc init
+dvc init 
+```
+
+DVC stage `train` формирует:
+- `models/model.joblib` — артефакт модели
+- `metrics.json` — метрики обучения

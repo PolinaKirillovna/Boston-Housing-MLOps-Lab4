@@ -1,5 +1,6 @@
 """Training pipeline for the Boston Housing regression model."""
 
+import json
 from pathlib import Path
 from typing import Tuple
 
@@ -17,6 +18,7 @@ CONFIG = load_config()
 
 DATA_PATH = BASE_DIR / CONFIG["paths"]["train_data"]
 MODEL_PATH = BASE_DIR / CONFIG["paths"]["model_path"]
+METRICS_PATH = BASE_DIR / "metrics.json"
 
 RANDOM_STATE = CONFIG.getint("project", "random_state")
 TARGET_COL = CONFIG["project"]["target_col"]
@@ -128,8 +130,29 @@ def save_model(model: RandomForestRegressor, model_path: Path = MODEL_PATH) -> N
     joblib.dump(model, model_path)
 
 
+def save_metrics(rmse: float, metrics_path: Path = METRICS_PATH) -> None:
+    """Save training metrics to a JSON file.
+
+    Args:
+        rmse: Validation RMSE.
+        metrics_path: Path to metrics output file.
+    """
+    metrics = {
+        "rmse": round(rmse, 6),
+        "model_name": "RandomForestRegressor",
+        "random_state": RANDOM_STATE,
+        "test_size": TEST_SIZE,
+        "n_estimators": CONFIG.getint("model", "n_estimators"),
+    }
+
+    metrics_path.write_text(
+        json.dumps(metrics, indent=4, ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+
 def train_model() -> Tuple[RandomForestRegressor, float]:
-    """Train model, evaluate it, and save artifact to disk.
+    """Train model, evaluate it, and save artifacts to disk.
 
     Returns:
         Tuple containing trained model and validation RMSE.
@@ -151,8 +174,10 @@ def train_model() -> Tuple[RandomForestRegressor, float]:
     rmse = rmse_score(y_valid, predictions)
 
     save_model(model)
+    save_metrics(rmse)
 
     print(f"Model saved to: {MODEL_PATH}")
+    print(f"Metrics saved to: {METRICS_PATH}")
     print(f"Validation RMSE: {rmse:.4f}")
 
     return model, rmse
