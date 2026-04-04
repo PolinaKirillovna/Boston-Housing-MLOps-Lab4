@@ -22,20 +22,13 @@ def build_connection_url() -> str:
     username = _get_required_env("MSSQL_USER")
     password = _get_required_env("MSSQL_PASSWORD")
     driver = os.getenv("MSSQL_DRIVER", "ODBC Driver 18 for SQL Server")
-    encrypt = os.getenv("MSSQL_ENCRYPT", "no")
-    trust_server_certificate = os.getenv("MSSQL_TRUST_SERVER_CERTIFICATE", "yes")
 
-    odbc_params = (
-        f"DRIVER={{{driver}}};"
-        f"SERVER={server},{port};"
-        f"DATABASE={database};"
-        f"UID={username};"
-        f"PWD={password};"
-        f"Encrypt={encrypt};"
-        f"TrustServerCertificate={trust_server_certificate};"
+    return (
+        f"mssql+pyodbc://{username}:{quote_plus(password)}@{server}:{port}/{database}"
+        f"?driver={quote_plus(driver)}"
+        f"&Encrypt=no"
+        f"&TrustServerCertificate=yes"
     )
-
-    return f"mssql+pyodbc:///?odbc_connect={quote_plus(odbc_params)}"
 
 
 DATABASE_URL = build_connection_url()

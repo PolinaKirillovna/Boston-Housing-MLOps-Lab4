@@ -1,0 +1,5 @@
+IF DB_ID(N'BostonHousingDB') IS NULL
+BEGIN
+    CREATE DATABASE BostonHousingDB;
+END;
+GO

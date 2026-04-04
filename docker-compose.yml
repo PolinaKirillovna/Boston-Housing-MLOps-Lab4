@@ -1,12 +1,66 @@
 version: "3.9"
 
 services:
-  boston-api:
-    build: .
-    container_name: boston-housing-api
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: boston-mssql
+    platform: linux/amd64
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: "Developer"
+      MSSQL_SA_PASSWORD: "${MSSQL_PASSWORD}"
+    ports:
+      - "1433:1433"
+    volumes:
+      - mssql_data:/var/opt/mssql
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "bash -c '</dev/tcp/localhost/1433' || exit 1"
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 40s
+
+  mssql-init:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: boston-mssql-init
+    depends_on:
+      mssql:
+        condition: service_healthy
+    env_file:
+      - .env
+    volumes:
+      - ./db/init:/init
+    command: >
+      sh -c "/opt/mssql-tools18/bin/sqlcmd
+      -S mssql,1433
+      -U ${MSSQL_USER}
+      -P ${MSSQL_PASSWORD}
+      -C
+      -i /init/init-db.sql"
+    restart: "no"
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: boston-api
+    depends_on:
+      mssql-init:
+        condition: service_completed_successfully
+    env_file:
+      - .env
     ports:
       - "8000:8000"
     volumes:
-      - ./models:/app/models
-      - ./data:/app/data
-    restart: unless-stopped
+      - .:/app
+    command: >
+      sh -c "uvicorn app.main:app --host 0.0.0.0 --port 8000"
+
+volumes:
+  mssql_data:
