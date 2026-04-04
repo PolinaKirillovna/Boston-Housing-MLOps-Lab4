@@ -18,6 +18,7 @@ class PredictionService:
     def predict_and_store(
         self,
         *,
+        user_id: int,
         features: dict,
         source: str = "api",
     ) -> dict:
@@ -26,6 +27,7 @@ class PredictionService:
         rounded_prediction = round(prediction, 4)
 
         saved_record = self.repository.save_prediction(
+            user_id=user_id,
             features=features,
             predicted_medv=rounded_prediction,
             model_version=self.model_version,

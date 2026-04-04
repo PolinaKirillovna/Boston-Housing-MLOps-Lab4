@@ -1,17 +1,16 @@
-from sqlalchemy.orm import Session
-
 from db.models.prediction_log import PredictionLog
 
 
 class PredictionRepository:
     """Repository for prediction log persistence."""
 
-    def __init__(self, db_session: Session) -> None:
+    def __init__(self, db_session) -> None:
         self.db_session = db_session
 
     def save_prediction(
         self,
         *,
+        user_id: int,
         features: dict,
         predicted_medv: float,
         model_version: str,
@@ -20,6 +19,7 @@ class PredictionRepository:
         error_message: str | None = None,
     ) -> PredictionLog:
         prediction_log = PredictionLog(
+            user_id=user_id,
             crim=features["crim"],
             zn=features["zn"],
             indus=features["indus"],
@@ -43,7 +43,6 @@ class PredictionRepository:
         self.db_session.add(prediction_log)
         self.db_session.commit()
         self.db_session.refresh(prediction_log)
-
         return prediction_log
 
     def get_by_request_id(self, request_id: str) -> PredictionLog | None:

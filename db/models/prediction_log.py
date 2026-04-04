@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import uuid4
 
-from sqlalchemy import DateTime, Float, Integer, String, Text
+from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from db.base import Base
@@ -19,6 +19,8 @@ class PredictionLog(Base):
         nullable=False,
         default=lambda: str(uuid4()),
     )
+
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
 
     crim: Mapped[float] = mapped_column(Float, nullable=False)
     zn: Mapped[float] = mapped_column(Float, nullable=False)
