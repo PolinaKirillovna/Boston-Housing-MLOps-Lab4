@@ -1,58 +1,109 @@
+"""Prediction utilities for batch inference on Boston Housing data."""
+
 from pathlib import Path
 
 import joblib
 import pandas as pd
 
-
-BASE_DIR = Path(__file__).resolve().parent.parent
-DATA_DIR = BASE_DIR / "data" / "raw"
-MODELS_DIR = BASE_DIR / "models"
-
-ID_COL = "ID"
-FEATURE_COLUMNS = [
-    "crim", "zn", "indus", "chas", "nox", "rm", "age",
-    "dis", "rad", "tax", "ptratio", "black", "lstat"
-]
+from src.config import BASE_DIR, load_config
+from src.train import FEATURE_COLUMNS
 
 
-def load_model():
-    model_path = MODELS_DIR / "model.joblib"
+CONFIG = load_config()
+
+TEST_DATA_PATH = BASE_DIR / CONFIG["paths"]["test_data"]
+MODEL_PATH = BASE_DIR / CONFIG["paths"]["model_path"]
+SUBMISSION_PATH = BASE_DIR / CONFIG["paths"]["submission_path"]
+
+ID_COL = CONFIG["project"]["id_col"]
+
+
+def load_model(model_path: Path = MODEL_PATH):
+    """Load serialized model artifact from disk.
+
+    Args:
+        model_path: Path to the saved model.
+
+    Returns:
+        Deserialized model instance.
+
+    Raises:
+        FileNotFoundError: If model file does not exist.
+    """
     if not model_path.exists():
         raise FileNotFoundError(
-            f"Не найдена модель: {model_path}. Сначала запусти обучение."
+            f"Model file not found: {model_path}. Run training first."
         )
+
     return joblib.load(model_path)
 
 
-def predict_from_dataframe(df: pd.DataFrame):
+def validate_feature_columns(df: pd.DataFrame) -> None:
+    """Validate that all required feature columns are present.
+
+    Args:
+        df: Input dataframe for inference.
+
+    Raises:
+        ValueError: If any expected features are missing.
+    """
     missing = set(FEATURE_COLUMNS) - set(df.columns)
     if missing:
-        raise ValueError(f"Отсутствуют признаки: {sorted(missing)}")
+        raise ValueError(f"Missing feature columns: {sorted(missing)}")
 
-    X = df[FEATURE_COLUMNS]
+
+def predict_from_dataframe(df: pd.DataFrame):
+    """Generate predictions for a dataframe.
+
+    Args:
+        df: Input dataframe containing model features.
+
+    Returns:
+        Array-like model predictions.
+    """
+    validate_feature_columns(df)
+
     model = load_model()
-    predictions = model.predict(X)
+    x_data = df[FEATURE_COLUMNS]
+    predictions = model.predict(x_data)
     return predictions
 
 
-def predict_test_file():
-    test_path = DATA_DIR / "test.csv"
+def predict_test_file(test_path: Path = TEST_DATA_PATH) -> pd.DataFrame:
+    """Run batch prediction for test.csv and create submission.csv.
+
+    Args:
+        test_path: Path to test CSV file.
+
+    Returns:
+        Submission dataframe with columns ID and medv.
+
+    Raises:
+        FileNotFoundError: If test file does not exist.
+        ValueError: If ID column is missing.
+    """
     if not test_path.exists():
-        raise FileNotFoundError(f"Не найден файл: {test_path}")
+        raise FileNotFoundError(f"Test file not found: {test_path}")
 
     test_df = pd.read_csv(test_path)
+
+    if ID_COL not in test_df.columns:
+        raise ValueError(f"Missing ID column: {ID_COL}")
+
     predictions = predict_from_dataframe(test_df)
 
-    submission = pd.DataFrame({
-        ID_COL: test_df[ID_COL],
-        "medv": predictions
-    })
+    submission = pd.DataFrame(
+        {
+            ID_COL: test_df[ID_COL],
+            "medv": predictions,
+        }
+    )
 
-    output_path = BASE_DIR / "submission.csv"
-    submission.to_csv(output_path, index=False)
+    submission.to_csv(SUBMISSION_PATH, index=False)
 
-    print(f"Файл submission сохранён: {output_path}")
+    print(f"Submission file saved to: {SUBMISSION_PATH}")
     print(submission.head())
+
     return submission
 
 

@@ -1,68 +1,90 @@
 # Boston Housing ML Project
 
 ## Описание проекта
-Учебный MLOps-проект для предсказания стоимости жилья в пригородах Бостона по набору табличных признаков.
+Учебный MLOps-проект по теме **«Классический жизненный цикл разработки моделей машинного обучения»** для предсказания стоимости жилья в пригородах Бостона.
 
-Целевая переменная: `medv`.
-
-Проект развивается по классическому ML lifecycle:
-- исследование данных в Google Colab;
-- перенос логики в `.py`-скрипты;
-- обучение и сохранение модели;
-- API на FastAPI;
-- далее: тесты, DVC, Docker, CI/CD.
+Целевая переменная: `medv`  
+Тип задачи: **регрессия**  
+Основная метрика: **RMSE**
 
 ## Датасет
-Используется датасет **Boston Housing**.
+Используется датасет **Boston Housing** (вариант 4).
 
 Основные файлы данных:
 - `data/raw/train.csv`
 - `data/raw/test.csv`
 - `data/raw/submission_example.csv`
 
-## Модель
-Текущая основная модель:
-- `RandomForestRegressor`
-
-На этапе исследования сравнивались:
+## Исследование и выбор модели
+На этапе исследования в Google Colab были протестированы несколько моделей:
 - `LinearRegression` — baseline;
 - `Ridge` — улучшенная линейная модель;
-- `RandomForestRegressor` — нелинейная модель.
+- `RandomForestRegressor` — основная выбранная модель.
 
-## Метрика
-Основная метрика качества: **RMSE**.
+## Метрика качества
+Основная метрика проекта: **RMSE**.
 
 Текущий результат локальной валидации:
-- **RMSE ≈ 2.82**
+- **RMSE ≈ 2.8**
+
+## Текущее состояние проекта
+На текущем этапе реализовано:
+- базовый EDA и выбор модели в Google Colab;
+- перенос обучения в Python-скрипт;
+- сохранение обученной модели в `models/model.joblib`;
+- batch prediction для `test.csv`;
+- FastAPI API с endpoint'ами:
+  - `GET /health`
+  - `GET /feature-metadata`
+  - `POST /predict`
+- `config.ini` для параметров проекта и модели;
+- тесты на обучение, batch prediction и API;
+- `.editorconfig` для единообразного стиля кода;
+- docstring-документация для модулей, функций и классов.
 
 ## Структура проекта
 ```text
 Boston-Housing-MLOps/
-├── app/                 # FastAPI приложение
+├── app/
+│   ├── __init__.py
+│   └── main.py                 # FastAPI приложение
 ├── data/
-│   ├── raw/             # исходные CSV-файлы
-│   └── processed/       # подготовленные данные
-├── models/              # сохранённые модели
-├── notebooks/           # Colab / Jupyter ноутбуки
-├── src/                 # обучение, предсказание, утилиты
-├── tests/               # тесты
-├── README.md
+│   └── raw/
+│       ├── train.csv
+│       ├── test.csv
+│       └── submission_example.csv
+├── models/
+│   └── model.joblib            # обученная модель
+├── notebooks/
+│   └── ...                     # ноутбуки Colab / Jupyter
+├── src/
+│   ├── __init__.py
+│   ├── config.py               # загрузка config.ini
+│   ├── train.py                # обучение модели
+│   └── predict.py              # batch prediction
+├── tests/
+│   ├── __init__.py
+│   ├── conftest.py
+│   ├── test_api.py
+│   ├── test_predict.py
+│   └── test_train.py
+├── .editorconfig
+├── config.ini
+├── pytest.ini
 ├── requirements.txt
+├── README.md
 └── .gitignore
 ```
 
 ## Требования к окружению
-Рекомендуемый способ запуска:
+Рекомендуемая среда:
 - **macOS**
-- **Anaconda Navigator**
 - **PyCharm Community**
-- отдельное `conda`-окружение
-
-Текущая рабочая версия Python:
+- **conda / Anaconda**
 - **Python 3.12**
 
 ## Зависимости
-Основные библиотеки проекта:
+Основные зависимости проекта:
 - `pandas`
 - `numpy`
 - `scikit-learn`
@@ -71,23 +93,24 @@ Boston-Housing-MLOps/
 - `fastapi`
 - `uvicorn`
 - `joblib`
+- `pydantic`
 - `pytest`
-- `requests`
+- `httpx`
 
-## Подготовка проекта
-### 1. Создать conda environment
-Через **Anaconda Navigator**:
-- открыть вкладку **Environments**;
-- создать окружение, например `boston-mlops-py312`;
-- выбрать Python 3.12;
-- установить необходимые библиотеки.
+## Подготовка окружения
 
-### 2. Открыть проект в PyCharm
-- клонировать или открыть репозиторий;
-- подключить созданное conda-окружение как Python Interpreter.
+### 1. Активировать conda-окружение
+```bash
+conda activate boston-mlops-py312
+```
 
-### 3. Положить данные
-Файлы нужно разместить в папке:
+### 2. Установить зависимости
+```bash
+pip install -r requirements.txt
+```
+
+### 3. Подготовить данные
+CSV-файлы должны лежать в папке:
 
 ```text
 data/raw/
@@ -98,56 +121,67 @@ data/raw/
 - `test.csv`
 - `submission_example.csv`
 
+## Конфигурация проекта
+Проект использует файл `config.ini`.
+
+Пример основных параметров:
+- `random_state`
+- `target_col`
+- `id_col`
+- пути к train/test/model/submission
+- гиперпараметры `RandomForestRegressor`
+- `test_size`
+
+Это позволяет:
+- убрать хардкод из Python-скриптов;
+- упростить изменение параметров обучения;
+- подготовить проект к DVC, Docker и CI/CD.
+
 ## Как запускать проект
-Все команды ниже выполняются **из корня проекта**.
+Все команды выполняются **из корня проекта**.
 
-### 1. Активировать окружение
+### 1. Обучение модели
 ```bash
-conda activate boston-mlops-py312
-```
-
-### 2. Обучить модель
-```bash
-python src/train.py
+python -m src.train
 ```
 
 Что делает команда:
 - читает `data/raw/train.csv`;
-- убирает `ID` из признаков;
+- проверяет обязательные колонки;
+- выделяет признаки и target;
 - делит данные на train/validation;
 - обучает `RandomForestRegressor`;
 - считает RMSE;
 - сохраняет модель в `models/model.joblib`.
 
 Ожидаемый результат:
-- в папке `models/` появляется файл `model.joblib`;
-- в консоли выводится значение `Validation RMSE`.
+- создаётся или обновляется файл `models/model.joblib`;
+- в консоли печатается `Validation RMSE`.
 
-### 3. Сформировать предсказания для test.csv
+### 2. Сформировать предсказания для test.csv
 ```bash
-python src/predict.py
+python -m src.predict
 ```
 
 Что делает команда:
-- загружает `models/model.joblib`;
+- загружает сохранённую модель;
 - читает `data/raw/test.csv`;
-- считает предсказания;
-- формирует файл `submission.csv` в корне проекта.
+- валидирует набор признаков;
+- создаёт `submission.csv` в корне проекта.
 
-### 4. Запустить API
+### 3. Запустить API
 ```bash
 python -m uvicorn app.main:app --reload
 ```
 
-После запуска API будет доступен по адресу:
-- `http://127.0.0.1:8000`
-
-Swagger UI:
-- `http://127.0.0.1:8000/docs`
+После запуска сервис доступен по адресам:
+- API: `http://127.0.0.1:8000`
+- Swagger UI: `http://127.0.0.1:8000/docs`
 
 ## API
+
 ### GET /health
-Проверка состояния сервиса.
+Проверка состояния приложения и наличия модели.
 
 Пример ответа:
 ```json
@@ -157,8 +191,33 @@ Swagger UI:
 }
 ```
 
+### GET /feature-metadata
+Служебный endpoint для фронтенда и интеграций.
+
+Пример ответа:
+```json
+{
+  "features": [
+    "crim",
+    "zn",
+    "indus",
+    "chas",
+    "nox",
+    "rm",
+    "age",
+    "dis",
+    "rad",
+    "tax",
+    "ptratio",
+    "black",
+    "lstat"
+  ],
+  "target": "medv"
+}
+```
+
 ### POST /predict
-Предсказание значения `medv` по признакам объекта недвижимости.
+Предсказание `medv` по набору признаков дома.
 
 Пример запроса:
 ```json
@@ -186,23 +245,15 @@ Swagger UI:
 }
 ```
 
-## Текущее состояние проекта
-На текущем этапе уже реализовано:
-- исследование данных в Colab;
-- перенос логики обучения в `.py`;
-- обучение модели и сохранение артефакта;
-- генерация submission;
-- FastAPI сервис;
-- Swagger-документация.
+## Тестирование
 
-Следующие этапы:
-- тесты (`pytest`);
-- DVC;
-- Docker и docker-compose;
-- CI/CD через GitHub Actions;
-- фронтенд для взаимодействия с API.
+### Запуск всех тестов
+```bash
+pytest -v
+```
 
-## Примечания
-- `ID` не используется как признак модели.
-- Для линейных моделей scaling нужен, для `RandomForestRegressor` не обязателен.
-- Проект специально развивается поэтапно, чтобы история коммитов отражала реальный процесс разработки.
+Тестами покрыты:
+- функции обучения;
+- batch prediction;
+- API endpoints.
+
