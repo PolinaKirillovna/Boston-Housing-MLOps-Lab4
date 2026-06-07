@@ -38,3 +38,7 @@ dist/
 build/
 *.egg-info/
 models/model.joblib
+
+# Ansible Vault
+secrets/.vault_pass
+secrets/secrets.plain.yml

@@ -53,8 +53,21 @@ services:
     depends_on:
       mssql-init:
         condition: service_completed_successfully
-    env_file:
-      - .env
+    environment:
+      APP_ENV: dev
+      MODEL_VERSION: "2.0.0"
+      MSSQL_SERVER: mssql
+      MSSQL_PORT: "1433"
+      MSSQL_DATABASE: BostonHousingDB
+      MSSQL_USER: sa
+      MSSQL_DRIVER: ODBC Driver 18 for SQL Server
+      JWT_ALGORITHM: HS256
+      JWT_ACCESS_TOKEN_EXPIRE_MINUTES: "60"
+      # MSSQL_PASSWORD and JWT_SECRET_KEY are intentionally absent here:
+      # the service decrypts them from secrets/secrets.yml at startup.
+      # The vault password comes from this variable (CI/CD) or from the
+      # mounted secrets/.vault_pass file (local development).
+      ANSIBLE_VAULT_PASSWORD: ${ANSIBLE_VAULT_PASSWORD:-}
     ports:
       - "8000:8000"
     volumes:

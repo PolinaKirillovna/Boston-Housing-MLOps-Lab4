@@ -13,17 +13,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      APP_ENV: dev
-      MODEL_VERSION: cd-model
-      MSSQL_SERVER: mssql
-      MSSQL_PORT: "1433"
-      MSSQL_DATABASE: BostonHousingDB
-      MSSQL_USER: sa
-      MSSQL_PASSWORD: ${{ secrets.MSSQL_PASSWORD }}
-      MSSQL_DRIVER: ODBC Driver 18 for SQL Server
-      JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
-      JWT_ALGORITHM: HS256
-      JWT_ACCESS_TOKEN_EXPIRE_MINUTES: "60"
+      ANSIBLE_VAULT_PASSWORD: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}
       BASE_URL: http://127.0.0.1:8000
 
     steps:
@@ -35,26 +25,13 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install Python dependencies for functional scenario
+      - name: Install tooling for secrets and functional scenario
         run: |
           python -m pip install --upgrade pip
-          pip install requests
+          pip install ansible-core pyyaml requests
 
-      - name: Create .env file
-        run: |
-          cat > .env <<EOF
-          APP_ENV=${APP_ENV}
-          MODEL_VERSION=${MODEL_VERSION}
-          MSSQL_SERVER=${MSSQL_SERVER}
-          MSSQL_PORT=${MSSQL_PORT}
-          MSSQL_DATABASE=${MSSQL_DATABASE}
-          MSSQL_USER=${MSSQL_USER}
-          MSSQL_PASSWORD=${MSSQL_PASSWORD}
-          MSSQL_DRIVER=${MSSQL_DRIVER}
-          JWT_SECRET_KEY=${JWT_SECRET_KEY}
-          JWT_ALGORITHM=${JWT_ALGORITHM}
-          JWT_ACCESS_TOKEN_EXPIRE_MINUTES=${JWT_ACCESS_TOKEN_EXPIRE_MINUTES}
-          EOF
+      - name: Render docker-compose .env from the Ansible Vault
+        run: python scripts/load_secrets.py
 
       - name: Start services with docker compose
         run: docker compose up --build -d
@@ -75,6 +52,8 @@ jobs:
           docker compose logs mssql
           docker compose logs mssql-init
 
-      - name: Stop services
+      - name: Tear down and remove plaintext secrets
         if: always()
-        run: docker compose down -v
+        run: |
+          docker compose down -v
+          rm -f .env

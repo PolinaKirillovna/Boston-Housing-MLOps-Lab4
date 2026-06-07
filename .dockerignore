@@ -12,3 +12,6 @@ venv/
 .idea/
 .vscode/
 notebooks/
+
+# Never bake the vault password into the image
+secrets/.vault_pass

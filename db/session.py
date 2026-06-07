@@ -1,11 +1,13 @@
 import os
 from urllib.parse import quote_plus
 
-from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-load_dotenv()
+from bootstrap_secrets import load_secrets_into_env
+
+# Obtain database credentials by decrypting the Ansible Vault file (if present).
+load_secrets_into_env()
 
 
 def _get_required_env(name: str) -> str:

@@ -1,11 +1,13 @@
 import os
 from datetime import datetime, timedelta, timezone
 
-from dotenv import load_dotenv
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
-load_dotenv()
+from bootstrap_secrets import load_secrets_into_env
+
+# Obtain the JWT secret by decrypting the Ansible Vault file (if present).
+load_secrets_into_env()
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
