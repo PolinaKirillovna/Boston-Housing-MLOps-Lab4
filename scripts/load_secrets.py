@@ -39,6 +39,11 @@ def main() -> None:
 
     lines = [f"{key}={value}" for key, value in STATIC.items()]
     lines.append(f"MSSQL_PASSWORD={mssql_password}")
+
+    kafka_cluster_id = secrets.get("KAFKA_CLUSTER_ID")
+    if kafka_cluster_id:
+        lines.append(f"KAFKA_CLUSTER_ID={kafka_cluster_id}")
+
     ENV_PATH.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"Wrote {ENV_PATH} for docker-compose (delete it after the run).")
 

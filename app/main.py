@@ -1,5 +1,8 @@
 """FastAPI application for Boston Housing price prediction and frontend UI."""
 
+import logging
+import os
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
@@ -26,18 +29,39 @@ from app.schemas.prediction import (
     HouseFeatures,
     PredictionResponse,
 )
+from app.kafka.producer import PredictionProducer
 from app.services.prediction_service import PredictionService
 from db.repositories.user_repository import UserRepository
 from src.config import BASE_DIR, load_config
+
+logger = logging.getLogger(__name__)
 
 CONFIG = load_config()
 MODEL_PATH = BASE_DIR / CONFIG["paths"]["model_path"]
 FRONTEND_DIR = BASE_DIR / "frontend"
 
+prediction_producer = PredictionProducer()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Start and stop the Kafka producer with the application lifecycle."""
+    if os.getenv("KAFKA_BOOTSTRAP_SERVERS"):
+        from confluent_kafka import KafkaException
+
+        try:
+            prediction_producer.start()
+        except KafkaException as exc:
+            logger.warning("Kafka producer unavailable at startup: %s", exc)
+    yield
+    prediction_producer.close()
+
+
 app = FastAPI(
     title="Boston Housing Prediction API",
     description="API and web UI for predicting Boston Housing target variable medv",
-    version="3.0.0",
+    version="4.0.0",
+    lifespan=lifespan,
 )
 
 FEATURE_METADATA = [
@@ -158,5 +182,15 @@ def predict(
             status_code=503,
             detail=f"Failed to persist prediction: {exc}",
         ) from exc
+
+    prediction_producer.publish(
+        {
+            "request_id": result["request_id"],
+            "user_id": current_user.id,
+            "predicted_medv": result["predicted_medv"],
+            "features": features.model_dump(),
+            "source": "api",
+        }
+    )
 
     return PredictionResponse(**result)
