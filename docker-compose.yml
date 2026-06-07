@@ -129,5 +129,19 @@ services:
     command: ["python", "scripts/run_consumer.py"]
     restart: on-failure
 
+  kafka-ui:
+    image: ghcr.io/kafbat/kafka-ui:latest
+    container_name: boston-kafka-ui
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: boston
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      DYNAMIC_CONFIG_ENABLED: "true"
+    restart: "no"
+
 volumes:
   mssql_data:
