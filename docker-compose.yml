@@ -36,13 +36,7 @@ services:
       - .env
     volumes:
       - ./db/init:/init
-    command: >
-      sh -c "/opt/mssql-tools18/bin/sqlcmd
-      -S mssql,1433
-      -U ${MSSQL_USER}
-      -P ${MSSQL_PASSWORD}
-      -C
-      -i /init/init-db.sql"
+    command: ["sh", "/init/run-init.sh"]
     restart: "no"
 
   api:
